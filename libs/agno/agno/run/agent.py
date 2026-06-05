@@ -900,6 +900,13 @@ class RunOutput:
         if references is not None:
             references = [MessageReferences.model_validate(reference) for reference in references]
 
+        status = data.get("status")
+        if isinstance(status, str):
+            try:
+                data["status"] = RunStatus(status)
+            except ValueError:
+                pass
+
         # Filter data to only include fields that are actually defined in the RunOutput dataclass
         from dataclasses import fields
 

@@ -185,6 +185,38 @@ def test_team_session_state_in_run_output():
     assert reconstructed.session_state == {"phase": "planning", "tasks": 3}
 
 
+def test_run_outputs_deserialize_valid_status_strings_to_run_status():
+    from agno.run.agent import RunOutput
+    from agno.run.base import RunStatus
+    from agno.run.team import TeamRunOutput
+    from agno.run.workflow import WorkflowRunOutput
+
+    agent_output = RunOutput.from_dict({"run_id": "agent-run", "status": "COMPLETED"})
+    team_output = TeamRunOutput.from_dict({"run_id": "team-run", "status": "COMPLETED"})
+    workflow_output = WorkflowRunOutput.from_dict({"run_id": "workflow-run", "status": "COMPLETED"})
+
+    assert agent_output.status == RunStatus.completed
+    assert agent_output.status.value == "COMPLETED"
+    assert team_output.status == RunStatus.completed
+    assert team_output.status.value == "COMPLETED"
+    assert workflow_output.status == RunStatus.completed
+    assert workflow_output.status.value == "COMPLETED"
+
+
+def test_run_outputs_leave_unknown_status_strings_unchanged():
+    from agno.run.agent import RunOutput
+    from agno.run.team import TeamRunOutput
+    from agno.run.workflow import WorkflowRunOutput
+
+    agent_output = RunOutput.from_dict({"run_id": "agent-run", "status": "CUSTOM_STATUS"})
+    team_output = TeamRunOutput.from_dict({"run_id": "team-run", "status": "CUSTOM_STATUS"})
+    workflow_output = WorkflowRunOutput.from_dict({"run_id": "workflow-run", "status": "CUSTOM_STATUS"})
+
+    assert agent_output.status == "CUSTOM_STATUS"
+    assert team_output.status == "CUSTOM_STATUS"
+    assert workflow_output.status == "CUSTOM_STATUS"
+
+
 def test_team_session_state_in_completed_event():
     """Test that TeamRunCompletedEvent includes session_state field."""
     from agno.run.team import TeamRunOutput

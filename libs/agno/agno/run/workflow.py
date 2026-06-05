@@ -978,6 +978,13 @@ class WorkflowRunOutput:
 
         input_data = data.pop("input", None)
 
+        status = data.get("status")
+        if isinstance(status, str):
+            try:
+                data["status"] = RunStatus(status)
+            except ValueError:
+                pass
+
         # Filter data to only include fields that are actually defined in the WorkflowRunOutput dataclass
         from dataclasses import fields
 

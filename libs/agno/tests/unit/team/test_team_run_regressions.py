@@ -1,12 +1,14 @@
 import inspect
+import json
 from typing import Any
 
 import pytest
 
 from agno.agent.agent import Agent
+from agno.os.routers.teams.router import _resume_stream_generator
 from agno.run import RunContext
 from agno.run.base import RunStatus
-from agno.run.team import TeamRunOutput
+from agno.run.team import RunStartedEvent, TeamRunOutput
 from agno.session import TeamSession
 from agno.team import _hooks
 from agno.team import _run as team_run
@@ -114,6 +116,34 @@ def test_handle_team_run_paused_without_run_context_does_not_set_state(monkeypat
 
     assert result.status == RunStatus.paused
     assert "session_state" not in session.session_data
+
+
+@pytest.mark.asyncio
+async def test_resume_stream_generator_replays_db_run_with_deserialized_status_string():
+    class FakeTeam:
+        async def aget_run_output(self, run_id: str, session_id: str, user_id: str | None = None) -> TeamRunOutput:
+            return TeamRunOutput.from_dict(
+                {
+                    "run_id": run_id,
+                    "team_id": "team-1",
+                    "session_id": session_id,
+                    "status": "COMPLETED",
+                    "events": [
+                        RunStartedEvent(run_id=run_id, team_id="team-1", session_id=session_id).to_dict(),
+                    ],
+                }
+            )
+
+    generator = _resume_stream_generator(
+        FakeTeam(), run_id="db-replay-run", last_event_index=None, session_id="session-1"
+    )
+
+    replay_event = await generator.__anext__()
+    assert replay_event.startswith("event: replay\n")
+
+    replay_data = json.loads(replay_event.split("data: ", 1)[1])
+    assert replay_data["status"] == "COMPLETED"
+    assert replay_data["total_events"] == 1
 
 
 def test_handle_team_run_paused_persists_state_when_session_data_is_none(monkeypatch: pytest.MonkeyPatch):

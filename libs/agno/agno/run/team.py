@@ -979,6 +979,13 @@ class TeamRunOutput:
         citations = data.pop("citations", None)
         citations = Citations.model_validate(citations) if citations else None
 
+        status = data.get("status")
+        if isinstance(status, str):
+            try:
+                data["status"] = RunStatus(status)
+            except ValueError:
+                pass
+
         # Filter data to only include fields that are actually defined in the TeamRunOutput dataclass
         from dataclasses import fields
 
